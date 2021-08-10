@@ -6,6 +6,7 @@ from flask import Flask, request, jsonify
 from flask_jwt import JWT, jwt_required, current_identity
 from flask_cors import CORS
 
+
 class User(object):
     def __init__(self, id, username, password):
         self.id = id
@@ -27,6 +28,7 @@ def fetch_users():
 
 
 users = fetch_users()
+
 
 def init_user_table():
     conn = sqlite3.connect('blog.db')
@@ -53,8 +55,8 @@ def init_post_table():
 init_user_table()
 init_post_table()
 
-username_table = { u.username: u for u in users }
-userid_table = { u.id: u for u in users }
+username_table = {u.username: u for u in users}
+userid_table = {u.id: u for u in users}
 
 
 def authenticate(username, password):
@@ -75,17 +77,18 @@ app.config['SECRET_KEY'] = 'super-secret'
 
 jwt = JWT(app, authenticate, identity)
 
+
 @app.route('/protected')
 @jwt_required()
 def protected():
     return '%s' % current_identity
+
 
 @app.route('/user-registration/', methods=["POST"])
 def user_registration():
     response = {}
 
     if request.method == "POST":
-
         first_name = request.form['first_name']
         last_name = request.form['last_name']
         username = request.form['username']
@@ -110,8 +113,8 @@ def create_blog():
     response = {}
 
     if request.method == "POST":
-        title = request.form['title']
-        content = request.form['content']
+        title = request.json['title']
+        content = request.json['content']
         date_created = datetime.datetime.now()
 
         with sqlite3.connect('blog.db') as conn:
@@ -123,7 +126,7 @@ def create_blog():
             conn.commit()
             response["status_code"] = 201
             response['description'] = "Blog post added succesfully"
-        return response
+        return response, 201
 
 
 @app.route('/get-blogs/', methods=["GET"])
@@ -171,9 +174,9 @@ def edit_post(post_id):
                     conn.commit()
                     response['message'] = "Update was successfully"
                     response['status_code'] = 200
+
             if incoming_data.get("content") is not None:
                 put_data['content'] = incoming_data.get('content')
-
                 with sqlite3.connect('blog.db') as conn:
                     cursor = conn.cursor()
                     cursor.execute("UPDATE post SET content =? WHERE id=?", (put_data["content"], post_id))
@@ -198,3 +201,7 @@ def get_post(post_id):
 
     return jsonify(response)
 
+
+if __name__ == "__main__":
+    app.run()
+    app.debug = True
